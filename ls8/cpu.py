@@ -2,12 +2,22 @@
 
 import sys
 
+# - [ ] Inventory what is here
+# - [ ] Implement the `CPU` constructor
+# - [ ] Add RAM functions `ram_read()` and `ram_write()`
+# - [ ] Implement the core of `run()`
+# - [ ] Implement the `HLT` instruction handler
+# - [ ] Add the `LDI` instruction
+# - [ ] Add the `PRN` instruction
+
 class CPU:
     """Main CPU class."""
 
     def __init__(self):
         """Construct a new CPU."""
-        pass
+        self.ram = [0] * 8
+        self.reg = [0] * 8
+        self.pc = 0
 
     def load(self):
         """Load a program into memory."""
@@ -36,7 +46,8 @@ class CPU:
 
         if op == "ADD":
             self.reg[reg_a] += self.reg[reg_b]
-        #elif op == "SUB": etc
+        elif op == "SUB":
+            self.reg[reg_a] -= self.reg[reg_b]
         else:
             raise Exception("Unsupported ALU operation")
 
@@ -62,4 +73,23 @@ class CPU:
 
     def run(self):
         """Run the CPU."""
-        pass
+        ldi = 0b10000010
+        prn = 0b01000111
+        hlt = 0b00000001
+        running = True
+        while running:
+            if self.ram[self.pc] == ldi:
+                self.reg[int(str(self.ram[self.pc + 1]), 2)] = self.ram[self.pc + 2]
+                self.pc += 3
+            elif self.ram[self.pc] == prn:
+                print(self.reg[int(str(self.ram[self.pc + 1]), 2)])
+                self.pc += 2
+            elif self.ram[self.pc] == hlt:
+                self.pc = 0
+                running = False
+
+    def ram_read(self, address):
+        return self.ram[int(str(address), 2)]
+
+    def ram_write(self, address, value):
+        self.ram[int(str(address), 2)] = value
