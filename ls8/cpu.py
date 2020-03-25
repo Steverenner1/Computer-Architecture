@@ -14,6 +14,9 @@ LDI = 0b10000010
 PRN = 0b01000111
 HLT = 0b00000001
 MUL = 0b10100010
+POP = 0b01000110
+PUSH = 0b01000101
+SP = 3
 
 class CPU:
     """Main CPU class."""
@@ -23,6 +26,16 @@ class CPU:
         self.ram = [0] * 256
         self.reg = [0] * 8
         self.pc = 0
+
+        self.branchtable = {}
+        self.branchtable[LDI] = self.handle_ldi
+        self.branchtable[PRN] = self.handle_prn
+        self.branchtable[HLT] = self.handle_hlt
+        self.branchtable[MUL] = self.handle_mul
+        self.branchtable[POP] = self.handle_pop
+        self.branchtable[PUSH] = self.handle_push
+        self.reg[SP] = 0
+        self.halted = False
 
     def load(self, filename):
         """Load a program into memory."""
@@ -41,13 +54,6 @@ class CPU:
         except:
             print("can't read file")
             sys.exit(2)
-
-    def ram_read(self, mar):
-        mdr = self.ram[mar]
-        return mdr
-
-    def ram_write(self, mdr, mar):
-        self.ram[mar] = mdr
 
         # For now, we've just hardcoded a program:
 
@@ -73,7 +79,7 @@ class CPU:
             self.reg[reg_a] += self.reg[reg_b]
         elif op == "SUB":
             self.reg[reg_a] -= self.reg[reg_b]
-        elif op == MUL:
+        elif op == "MUL":
             self.reg[reg_a] *= self.reg[reg_b]
         else:
             raise Exception("Unsupported ALU operation")
@@ -98,14 +104,66 @@ class CPU:
 
         print()
 
+    def ram_read(self, mar):
+        mdr = self.ram[mar]
+        return mdr
+
+    def ram_write(self, mdr, mar):
+        self.ram[mar] = mdr
+
+
+    def handle_ldi(self):
+        number = self.ram_read(self.pc + 1)
+        value = self.ram_read(self.pc + 2)
+        self.reg[number] = value
+    
+    def handle_prn(self):
+        number = self.ram_read(self.pc + 1)
+        print(self.reg[number])
+
+    def handle_hlt(self):
+        self.halted = True
+    
+    def handle_mul(self):
+        num1 = self.ram_read(self.pc + 1)
+        print(f"num1: {num1}")
+        num2 = self.ram_read(self.pc + 2)
+        print(f"num2: {num2}")
+        self.alu("MUL", num1, num2)
+
+    def handle_pop(self):
+        val = self.ram[self.reg[SP]]
+        num = self.ram_read(self.pc + 1)
+        self.reg[num] = val
+        self.reg[SP] += 1
+
+    def handle_push(self):
+        self.reg[SP] -= 1
+        num = self.ram_read(self.pc + 1)
+        val = self.reg[num]
+        self.ram[self.reg[SP]] = val
+
     def run(self):
         """Run the CPU."""
-        LDI = 0b10000010
-        PRN = 0b01000111
-        HLT = 0b00000001
-        MUL = 0b10100010
-        running = True
-        while running:
+        while self.halted != True:
+            ir = self.ram[self.pc]
+            val = ir
+            op_count = val >> 6
+            ir_length = op_count + 1
+            self.branchtable[ir]()
+
+            if ir == 0 or None:
+                print(f"Cannot execute {self.pc}")
+                sys.exit(1)
+
+            self.pc += ir_length
+
+        # LDI = 0b10000010
+        # PRN = 0b01000111
+        # HLT = 0b00000001
+        # MUL = 0b10100010
+        # running = True
+        # while running:
             # if self.ram[self.pc] == ldi:
             #     self.reg[int(str(self.ram[self.pc + 1]), 2)] = self.ram[self.pc + 2]
             #     self.pc += 3
@@ -118,23 +176,23 @@ class CPU:
             # elif self.ram[self.pc] == HLT:
             #     self.pc = 0
             #     running = False
-            opcode = self.ram[self.pc]
-            operand_a = self.ram_read(self.pc + 1)
-            operand_b = self.ram_read(self.pc + 2)
-            if opcode == LDI:
-                self.reg[operand_a] = operand_b
-                self.pc += 3
-            elif opcode == PRN:
-                print(self.reg[operand_a])
-                self.pc += 2
-            elif opcode == MUL:
-                self.alu(opcode, operand_a, operand_b)
-                self.pc += 3
-            elif opcode == HLT:
-                sys.exit(0)
-            else:
-                print(f"Did not work")
-                sys.exit(1)
+            # opcode = self.ram[self.pc]
+            # operand_a = self.ram_read(self.pc + 1)
+            # operand_b = self.ram_read(self.pc + 2)
+            # if opcode == LDI:
+            #     self.reg[operand_a] = operand_b
+            #     self.pc += 3
+            # elif opcode == PRN:
+            #     print(self.reg[operand_a])
+            #     self.pc += 2
+            # elif opcode == MUL:
+            #     self.alu(opcode, operand_a, operand_b)
+            #     self.pc += 3
+            # elif opcode == HLT:
+            #     sys.exit(0)
+            # else:
+            #     print(f"Did not work")
+            #     sys.exit(1)
 
         
 
