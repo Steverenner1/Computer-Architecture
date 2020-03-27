@@ -20,6 +20,10 @@ SP = 7
 RET = 0b00010001
 CALL = 0b01010000
 ADD = 0b10100000
+CMP = 0b10100111
+JMP = 0b01010100
+JEQ = 0b01010101
+JNE = 0b01010110
 
 class CPU:
     """Main CPU class."""
@@ -40,6 +44,10 @@ class CPU:
             CALL: self.handle_call,
             RET: self.handle_ret,
             ADD: self.handle_add,
+            CMP: self.handle_cmp,
+            JMP: self.handle_jmp,
+            JEQ: self.handle_jeq,
+            JNE: self.handle_jne,
         }
 
         self.reg[SP] = 0
@@ -170,6 +178,46 @@ class CPU:
         self.alu("ADD", self.ram_read(self.pc + 1), self.ram_read(self.pc + 2))
         self.pc += 3
 
+    def handle_cmp(self):
+        # Write to register
+        operand_a = self.reg[self.ram_read(self.pc + 1)]
+        # Value to write
+        operand_b = self.reg[self.ram_read(self.pc + 2)]
+        # = flag to ls8
+        self.Flag = 0
+        # comparing operand_a and operand_b
+        if operand_a == operand_b:
+            self.Flag = self.Flag | 1
+        elif operand_a > operand_b:
+            self.Flag = self.Flag | 2
+        else:
+            self.Flag = self.Flag | 4
+        self.pc += 3
+
+    def handle_jmp(self):
+        # Register tells PC where to jump
+        operand_a = self.ram_read(self.pc + 1)
+        # Jump to pointed operation
+        self.pc = self.reg[operand_a]
+
+    def handle_jeq(self):
+        # Register tells PC where to jump
+        operand_a = self.ram_read(self.pc + 1)
+        # Jump to operation pointed in call
+        if self.Flag & 0x1 == 1:
+            self.pc = self.reg[operand_a]
+        else:
+            self.pc += 2
+
+    def handle_jne(self):
+        # Register tells PC where to jump
+        operand_a = self.ram_read(self.pc + 1)
+        # Jump to operation pointed in call
+        if self.Flag & 0x1 == 0:
+            self.pc = self.reg[operand_a]
+        else:
+            self.pc += 2
+
     def run(self):
         """Run the CPU."""
         while self.halted != True:
@@ -183,22 +231,7 @@ class CPU:
             if ir == 0 or None:
                 print(f"Cannot execute {self.pc}")
                 sys.exit(1)
-        # running = True
 
-        # while running:
-        #     ir = self.ram[self.pc]
-
-        #     operand_a = self.ram_read(self.pc + 1)
-        #     operand_b = self.ram_read(self.pc + 2)
-
-        #     try:
-        #         operation_output = self.commands[ir](operand_a, operand_b)
-        #         running = operation_output[1]
-        #         self.pc += operation_output[0]
-
-        #     except:
-        #         print(f"Unknown command: {ir}")
-        #         sys.exit()
 
 
             # if ir != 80:
